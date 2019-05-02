@@ -4,7 +4,8 @@ Learning Elixir from the official [Elixir Getting Start](https://elixir-lang.org
 
 ## Lessons
 
-* https://elixir-lang.org/getting-started/mix-otp/agent.html
+* [Introduction to Mix](https://elixir-lang.org/getting-started/mix-otp/introduction-to-mix.html)
+* [Agent](https://elixir-lang.org/getting-started/mix-otp/agent.html)
 
 
 ## Installation

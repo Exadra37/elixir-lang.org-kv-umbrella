@@ -28,6 +28,20 @@ defmodule KV.Bucket do
     Returns the current value of `key`, if `key` exists.
     """
     def delete(bucket, key) do
+
+        # This is client side.
+
+        # Everything running outside the agent is running on the client, while
+        # what is running inside the Agent, the function `&Map.pop(&1, key)`, is
+        # said to be running on the server side.
         Agent.get_and_update(bucket, &Map.pop(&1, key))
+
+        # This is also client side.
+
+        # So is important to be careful, and avoid to run expensive operations
+        # in the server, because all other clients sending request to the same
+        # server will need to wait for the action to complete.
+
+        # @link https://elixir-lang.org/getting-started/mix-otp/agent.html#clientserver-in-agents
     end
 end
