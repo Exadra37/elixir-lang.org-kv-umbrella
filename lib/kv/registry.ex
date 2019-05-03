@@ -31,19 +31,41 @@ defmodule KV.Registry do
 
 
     def init(:ok) do
-        {:ok, %{}}
+        names = %{}
+        refs = %{}
+        {:ok, {names, refs}}
     end
 
-    def handle_call({:lookup, name}, _from, names) do
-        {:reply, Map.fetch(names, name), names}
+    def handle_call({:lookup, name}, _from, state) do
+        {names, _} = state
+        {:reply, Map.fetch(names, name), state}
     end
 
-    def handle_cast({:create, name}, names) do
+    def handle_cast({:create, name}, {names, refs}) do
         if Map.has_key?(names, name) do
-            {:noreply, names}
+            {:noreply, {names, refs}}
         else
-            {:ok, bucket} = KV.Bucket.start_link([])
-            {:noreply, Map.put(names, name, bucket)}
+            {:ok, pid} = KV.Bucket.start_link([])
+
+            # we need to monitor the Bucket process in order to be able to
+            # remove it later when a Bucket stop or crashes.
+            ref = Process.monitor(pid)
+            refs = Map.put(refs, ref, name)
+            names = Map.put(names, name, pid)
+
+            {:noreply, {names, refs}}
         end
+    end
+
+    def handle_info({:DOWN, ref, :process, _pid, _reason}, {names, refs}) do
+        {name, refs} = Map.pop(refs, ref)
+        names = Map.delete(names, name)
+        {:noreply, {names, refs}}
+    end
+
+    # catch all for messages we may receive, that we not care about, we only
+    # want the above :DOWN
+    def handle_info(_msg, state) do
+        {:noreply, state}
     end
 end
