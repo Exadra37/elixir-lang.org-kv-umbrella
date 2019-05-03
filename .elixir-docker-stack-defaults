@@ -1,0 +1,2 @@
+elixir_tag=1.8-slim
+dockerfile=debian
