@@ -50,7 +50,15 @@ defmodule KV.Registry do
         if Map.has_key?(names, name) do
             {:noreply, {names, refs}}
         else
-            {:ok, pid} = KV.Bucket.start_link([])
+
+            # The previous normal Supervisor we had here starting the Bucket,
+            # would link the Registry with the Bucket process, thus if the
+            # Bucket was stopped or crashed the Registry would die to.
+            #
+            # So we don't want crash the `KV.Registry` each time a `KV.Bucket`
+            # crashes or stop, thus we need to use a Dynamic Supervisor, instead
+            # of a normal Supervisor.
+            {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, KV.Bucket)
 
             # we need to monitor the Bucket process in order to be able to
             # remove it later when a Bucket stop or crashes.
