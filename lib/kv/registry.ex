@@ -23,6 +23,11 @@ defmodule KV.Registry do
     Ensures there is a bucket associated with the given `name` in `server`.
     """
     def create(server, name) do
+
+        # we use `cast` here for didactic purposes only, in a real production
+        # application we should use `call`, because `cast` doesn't return a
+        # reply, neither guarantees that the message was delivered, thus we are
+        # just trusting that everything will work, and our bucket gets created.
         GenServer.cast(server, {:create, name})
     end
 
