@@ -23,6 +23,15 @@ defmodule KV.RegistryTest do
         KV.Registry.create(registry, "shopping")
         {:ok, bucket} = KV.Registry.lookup(registry, "shopping")
         Agent.stop(bucket)
+
+        # Do a call to ensure the registry processed the DOWN message
+        # This works because messages are processed in order they arrive, thus
+        # when this message to create the bogus bucket returns, it means that
+        # the DOWN message is already processed.
+        # This is necessary to avoid a race condition where the lookup call may
+        # be processed before the DOWN message.
+        # @link https://elixir-lang.org/getting-started/mix-otp/ets.html#race-conditions
+        _ = KV.Registry.create(registry, "bogus")
         assert KV.Registry.lookup(registry, "shopping") == :error
     end
 
@@ -32,6 +41,19 @@ defmodule KV.RegistryTest do
 
         # Stop the bucket with non-normal reason
         Agent.stop(bucket, :shutdown)
+
+        # Do a call to ensure the registry processed the DOWN message
+        _ = KV.Registry.create(registry, "bogus")
         assert KV.Registry.lookup(registry, "shopping") == :error
+    end
+
+    test "bucket can crash at any time", %{registry: registry} do
+        KV.Registry.create(registry, "shopping")
+        {:ok, bucket} = KV.Registry.lookup(registry, "shopping")
+
+        # Simulate a bucket crash by explicitly and synchronously shutting it down
+        Agent.stop(bucket, :shutdown)
+
+        catch_exit KV.Bucket.put(bucket, "milk", 3)
     end
 end
