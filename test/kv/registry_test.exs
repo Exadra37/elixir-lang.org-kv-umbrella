@@ -1,12 +1,12 @@
 defmodule KV.RegistryTest do
    use ExUnit.Case, async: true
 
-    setup do
+    setup context do
         # using start_supervised!/1 to start the process guarantees that ExUnit
         # shuts down the KV.Registry process before it starts a new one for the
         # next test, thus not leaking state between tests.
-        registry = start_supervised!(KV.Registry)
-        %{registry: registry}
+        _ = start_supervised!({KV.Registry, name: context.test})
+        %{registry: context.test}
     end
 
     test "spawns buckets", %{registry: registry} do

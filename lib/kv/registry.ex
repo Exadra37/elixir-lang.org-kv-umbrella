@@ -4,10 +4,15 @@ defmodule KV.Registry do
     ## Client API
 
     @doc """
-    Starts the registry.
+    Starts the registry with the given options.
+
+    `:name` is always required.
     """
     def start_link(opts) do
-        GenServer.start_link(__MODULE__, :ok, opts)
+
+        # 1. Pass the name to GenServer's init
+        server = Keyword.fetch!(opts, :name)
+        GenServer.start_link(__MODULE__, server, opts)
     end
 
     @doc """
@@ -16,7 +21,12 @@ defmodule KV.Registry do
     Return `{:ok, pid}` if the bucket exists, `:error` otherwise.
     """
     def lookup(server, name) do
-        GenServer.call(server, {:lookup, name})
+
+        # 2. Lookup is now done directly in ETS, without accessing the server.
+        case :ets.lookup(server, name) do
+            [{^name, pid}] -> {:ok, pid}
+            [] -> :error
+        end
     end
 
     @doc """
@@ -35,44 +45,48 @@ defmodule KV.Registry do
     ## Server Callbacks
 
 
-    def init(:ok) do
-        names = %{}
+    def init(table) do
+
+        # 3. We have replaced the names map by the ETS table
+        names = :ets.new(table, [:named_table, read_concurrency: true])
         refs = %{}
         {:ok, {names, refs}}
     end
 
-    def handle_call({:lookup, name}, _from, state) do
-        {names, _} = state
-        {:reply, Map.fetch(names, name), state}
-    end
+    # 4. The previous `handle_call` callback for lookup was removed
 
     def handle_cast({:create, name}, {names, refs}) do
-        if Map.has_key?(names, name) do
-            {:noreply, {names, refs}}
-        else
 
-            # The previous normal Supervisor we had here starting the Bucket,
-            # would link the Registry with the Bucket process, thus if the
-            # Bucket was stopped or crashed the Registry would die to.
-            #
-            # So we don't want crash the `KV.Registry` each time a `KV.Bucket`
-            # crashes or stop, thus we need to use a Dynamic Supervisor, instead
-            # of a normal Supervisor.
-            {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, KV.Bucket)
+        # 5. Read and write to the ETS table instead of the map
+        case lookup(names, name) do
+            {:ok, _pid} ->
+                {:noreply, {names, refs}}
 
-            # we need to monitor the Bucket process in order to be able to
-            # remove it later when a Bucket stop or crashes.
-            ref = Process.monitor(pid)
-            refs = Map.put(refs, ref, name)
-            names = Map.put(names, name, pid)
+            :error ->
 
-            {:noreply, {names, refs}}
+                # The previous normal Supervisor we had here starting the Bucket,
+                # would link the Registry with the Bucket process, thus if the
+                # Bucket was stopped or crashed the Registry would die to.
+                #
+                # So we don't want crash the `KV.Registry` each time a `KV.Bucket`
+                # crashes or stop, thus we need to use a Dynamic Supervisor, instead
+                # of a normal Supervisor.
+                {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, KV.Bucket)
+
+                # we need to monitor the Bucket process in order to be able to
+                # remove it later when a Bucket stop or crashes.
+                ref = Process.monitor(pid)
+                refs = Map.put(refs, ref, name)
+                :ets.insert(names, {name, pid})
+                {:noreply, {names, refs}}
         end
     end
 
     def handle_info({:DOWN, ref, :process, _pid, _reason}, {names, refs}) do
+
+        # 6. Delete from the ETS table instead of the map
         {name, refs} = Map.pop(refs, ref)
-        names = Map.delete(names, name)
+        :ets.delete(names, name)
         {:noreply, {names, refs}}
     end
 

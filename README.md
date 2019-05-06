@@ -9,6 +9,7 @@ Learning Elixir from the official [Elixir Getting Start](https://elixir-lang.org
 * [GenServer](https://elixir-lang.org/getting-started/mix-otp/genserver.html)
 * [Supervisor and Application](https://elixir-lang.org/getting-started/mix-otp/supervisor-and-application.html)
 * [Dynamic Supervisor](https://elixir-lang.org/getting-started/mix-otp/dynamic-supervisor.html)
+* [ETS](https://elixir-lang.org/getting-started/mix-otp/ets.html)
 
 
 ## Installation
