@@ -20,7 +20,19 @@ defmodule KVServer do
 
   defp loop_acceptor(socket) do
     {:ok, client} = :gen_tcp.accept(socket)
-    serve(client)
+    {:ok, pid} = Task.Supervisor.start_child(KVServer.TaskSupervisor, fn -> serve(client) end)
+
+    # By default a child process is linked to its parent, the one starting
+    # it, thus if it crashes it will bring down the parent process to.
+    #
+    # Here the `loop_acceptor` is the parent process that accepts clients
+    # `client` and starts a Task `pid` to serve each client request, thus if a
+    # Task crashes, it will bring down the `loop_acceptor`, thus all clients,
+    # and we don't want this to happen.
+    #
+    # TODO: I'm not sure if a fully understand this "controlling_processs" thing.
+    :ok = :gen_tcp.controlling_process(client, pid)
+
     loop_acceptor(socket)
   end
 
