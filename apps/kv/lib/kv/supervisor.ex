@@ -16,6 +16,7 @@ defmodule KV.Supervisor do
             # or crashes is restarted.
             {DynamicSupervisor, name: KV.BucketSupervisor, strategy: :one_for_one},
             {KV.Registry, name: KV.Registry},
+            {Task.Supervisor, name: KV.RouterTasks},
         ]
 
         # The strategy `one_for_all` means that if one of the children dies, all

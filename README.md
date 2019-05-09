@@ -13,3 +13,4 @@ Learning Elixir from the official [Elixir Getting Start](https://elixir-lang.org
 * [Dependendies and Umbrella Projects](https://elixir-lang.org/getting-started/mix-otp/dependencies-and-umbrella-projects.html)
 * [Task and gen_tcp](https://elixir-lang.org/getting-started/mix-otp/task-and-gen-tcp.html)
 * [Doctests, patterns and with](https://elixir-lang.org/getting-started/mix-otp/docs-tests-and-with.html)
+* [Distributed Tasks and Configuration](https://elixir-lang.org/getting-started/mix-otp/distributed-tasks-and-configuration.html)
