@@ -7,7 +7,7 @@ defmodule KV.Router do
     # Get the first by of the binary
     first = :binary.first(bucket)
 
-    # Try to fins an entry in the table() or raise
+    # Try to find an entry in the table() or raise
     entry =
       Enum.find(table(), fn {enum, _node} ->
         first in enum
@@ -27,7 +27,10 @@ defmodule KV.Router do
     raise "could not find entry for #{inspect bucket} in table #{inspect table()}"
   end
 
+  @doc """
+  The routing table.
+  """
   def table do
-    [{?a..?m, :foo@kv}, {?n..?z, :bar@kv}]
+    Application.fetch_env!(:kv, :routing_table)
   end
 end
